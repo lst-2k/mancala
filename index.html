@@ -35,6 +35,9 @@ input{width:100px;text-align:center;text-transform:uppercase;background:#fff3d6;
 #rules{z-index:6}#rules .box{text-align:left;max-height:88vh;overflow:auto;gap:8px;font-size:15px;line-height:1.4}#rules ul{margin:0;padding-left:20px}#rules button{justify-self:center;margin-top:6px}
 .num{display:flex;align-items:center;align-self:center;min-width:0}.num.R{flex-direction:row-reverse}.num b{flex:none;width:2em;height:2em;display:flex;align-items:center;justify-content:center;border:2px solid #ffe9b8;border-radius:50%;background:rgba(30,15,5,.65);color:#ffe9b8;font:bold 15px/1 Georgia,serif;box-shadow:0 2px 3px rgba(0,0,0,.5)}.num u{flex:1;height:2px;min-width:2px;background:#ffe9b8;opacity:.8}
 .tag{text-align:center;font-weight:bold;letter-spacing:.05em;font-size:clamp(11px,3.2vw,15px);padding:4px 2px;border-radius:10px;background:rgba(30,15,5,.55);color:#e9d3a6;box-shadow:inset 0 1px 3px #000;opacity:.75}.tag.act{opacity:1;color:#2a1508;background:linear-gradient(#ffd978,#d9a441);box-shadow:0 0 12px var(--gold)}
+.fly{position:fixed;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;z-index:3;pointer-events:none;box-shadow:0 3px 3px rgba(0,0,0,.6),inset -2px -3px 4px rgba(0,0,0,.35);transition:transform .25s ease-in-out}
+.x{position:absolute;top:8px;right:8px;width:34px;height:34px;padding:0;border-radius:50%;font-size:18px;line-height:1}
+#menu .box{position:relative}
 #rc{font-size:38px;letter-spacing:.3em;color:#ffd978;text-shadow:0 2px 0 #6b4510;margin-bottom:8px}
 #toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;width:max-content;max-width:80vw;text-align:center;padding:18px 22px;border-radius:16px;font-size:19px;line-height:1.35;color:#2a1508;background:linear-gradient(#ffd978,#d9a441);border:3px solid #8a5c14;box-shadow:0 12px 40px rgba(0,0,0,.7);pointer-events:none}
 .hide{display:none!important}
@@ -61,6 +64,7 @@ input{width:100px;text-align:center;text-transform:uppercase;background:#fff3d6;
 <button id="closeHelp">Got it</button>
 </div></div>
 <div id="menu"><div class="box">
+<button class="x" id="closeMenu" aria-label="Close">✕</button>
 <h2>Choose a game</h2>
 <div>Play the computer</div>
 <div class="row"><button data-l="1">Easy</button><button data-l="4">Medium</button><button data-l="7">Hard</button></div>
@@ -100,12 +104,13 @@ for(let k=0;k<b[i];k++){const[x,y]=pos(i,k,st);h+=`<i style="left:${x}%;top:${y}
 P[i].innerHTML=h;N[i].firstChild.textContent=b[i]}
 mark()}
 function mark(){const lo=me*7;for(let i=0;i<14;i++){const ok=S&&!S.over&&!busy&&S.t==me&&(mode=="cpu"||true)&&i>=lo&&i<lo+6&&S.b[i]>0;P[i].classList.toggle("on",!!ok)}}
+function fly(i,j,col){return new Promise(res=>{const a=P[i].getBoundingClientRect(),b=P[j].getBoundingClientRect(),e=document.createElement("i");e.className="fly";e.style.left=(a.left+a.width/2)+"px";e.style.top=(a.top+a.height/2)+"px";e.style.background="radial-gradient(circle at 35% 30%,#fff9,"+col+" 55%)";document.body.appendChild(e);requestAnimationFrame(()=>requestAnimationFrame(()=>{e.style.transform="translate("+(b.left+b.width/2-a.left-a.width/2)+"px,"+(b.top+b.height/2-a.top-a.height/2)+"px)"}));setTimeout(()=>{e.remove();res()},290)})}
 function toast(t,ms){const e=$("toast");e.textContent=t;e.classList.remove("hide");return wait(ms).then(()=>e.classList.add("hide"))}
 function status(t){$("status").textContent=t}
 function setTurn(){if(S.over)return;const my=S.t==me;$("t0").classList.toggle("act",my);$("t1").classList.toggle("act",!my);status(mode=="cpu"?(my?"Your turn":"Computer is thinking…"):(my?"Your turn":"Friend’s turn"));mark()}
 async function play(i){busy=true;mark();const t=S.t,r=sim(S.b,t,i,true);const first=S.b.slice();first[i]=0;render(first);await wait(450);
 for(const s of r.sp){render(s);chink();await wait(400)}
-if(r.end){const pre=r.sp[r.sp.length-1],a=pre.slice(0,6).reduce((x,y)=>x+y),c=pre.slice(7,13).reduce((x,y)=>x+y),n=a+c;if(n>0){const who=(a>0?0:1)==me?"you":(mode=="cpu"?"the Computer":"your friend");const m="One side is empty – the remaining "+n+" counter"+(n==1?"":"s")+" go to "+who+"!";status(m);await toast(m,3000)}}
+if(r.end){const pre=r.sp[r.sp.length-1],a=pre.slice(0,6).reduce((x,y)=>x+y),c=pre.slice(7,13).reduce((x,y)=>x+y),n=a+c;if(n>0){const who=(a>0?0:1)==me?"you":(mode=="cpu"?"the Computer":"your friend");const m="One side is empty – the remaining "+n+" counter"+(n==1?"":"s")+" go to "+who+"!";status(m);await toast(m,2200);let cur=pre.slice();const sst=a>0?6:13;for(let k=a>0?0:7;k<(a>0?6:13);k++){while(cur[k]>0){cur[k]--;render(cur);await fly(k,sst,COL[k%8]);cur[sst]++;render(cur);chink()}}}}
 S.b=r.b;render(S.b);S.n++;S.t=r.next;
 if(r.end){S.over=true;const m=S.b[6],o=S.b[13],mine=m>o?"You win! ":m<o?(mode=="cpu"?"Computer wins. ":"Your friend wins. "):"It is a draw. ";status(mine+m+" – "+o+" (tap Menu for a new game)");chink();setTimeout(chink,160);setTimeout(chink,320)}
 busy=false;if(!S.over){setTurn();if(mode=="cpu"&&S.t==1){await wait(1000);play(aiPick())}}else mark()}
@@ -130,6 +135,7 @@ showShare(code);room.child("guest").on("value",s=>{if(s.val()&&!started)start("o
 $("join").onclick=()=>{if(!fb())return;const c=$("code").value.trim().toUpperCase();if(c.length<4){msg("Enter the 4-letter code");return}const rr=db.ref("mancala/"+c);msg("Joining…");rr.once("value").then(s=>{if(!s.exists()){msg("Room not found – check the code");return}room=rr;me=1;room.child("guest").set(true);start("online");listen()}).catch(()=>msg("Could not connect"))};
 document.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{if(room){room.off();room=null}$("share").classList.add("hide");msg("");lvl=+b.dataset.l;me=0;start("cpu")});
 $("menuBtn").onclick=()=>$("menu").classList.remove("hide");
+$("closeMenu").onclick=()=>$("menu").classList.add("hide");
 $("helpBtn").onclick=()=>$("rules").classList.remove("hide");
 $("closeHelp").onclick=()=>$("rules").classList.add("hide");
 $("rules").onclick=e=>{if(e.target.id=="rules")$("rules").classList.add("hide")};
