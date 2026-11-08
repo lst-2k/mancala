@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mancala 3D</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-database-compat.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#24150a;--tx:#f6e7c8;--gold:#f4c04a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 20px);height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 20px);overflow:hidden;background:radial-gradient(ellipse at 50% 30%,#4a2e18,var(--bg) 70%);color:var(--tx);font-family:Georgia,"Times New Roman",serif;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+h1{margin:6px 0 0;font-size:clamp(24px,6.5vw,40px);letter-spacing:.12em;color:#ffd978;text-shadow:0 1px 0 #d9a441,0 2px 0 #c28d2e,0 3px 0 #a87420,0 4px 0 #8a5c14,0 5px 0 #6b4510,0 10px 14px rgba(0,0,0,.6)}
+#status{min-height:22px;margin:2px 12px;font-size:16px;text-align:center}
+#stage{perspective:1100px;flex:1;min-height:0;width:100%;container-type:size;display:flex;justify-content:center;align-items:center}
+#board{display:grid;grid-template-columns:.6fr 1fr 1fr .6fr;grid-template-rows:auto 1.1fr repeat(6,1fr) 1.1fr;gap:1.4% 0;padding:3.5% 4.5%;width:min(96cqw,calc(100cqh*.58));aspect-ratio:.58;border-radius:26px;transform:rotateX(12deg);transform-origin:50% 60%;
+background:repeating-linear-gradient(92deg,rgba(0,0,0,.07) 0 2px,transparent 2px 9px,rgba(255,220,160,.05) 9px 11px),linear-gradient(160deg,#b9783a,#8c5224 55%,#6e3d18);
+box-shadow:0 0 0 5px #5a3314,0 0 0 8px #c58b4b,0 30px 40px rgba(0,0,0,.65),inset 0 3px 6px rgba(255,220,170,.35)}
+.pit{position:relative;height:100%;aspect-ratio:1.35;max-width:100%;justify-self:center;border-radius:50%;background:radial-gradient(circle at 50% 62%,#5a3012,#2e1706 80%);box-shadow:inset 0 7px 12px rgba(0,0,0,.8),inset 0 -3px 5px rgba(255,200,140,.25),0 1px 0 rgba(255,220,170,.4);cursor:default}
+.store{aspect-ratio:auto;width:100%;border-radius:22% / 48%}
+.pit.on{cursor:pointer;box-shadow:inset 0 7px 12px rgba(0,0,0,.8),0 0 0 3px var(--gold),0 0 18px var(--gold)}
+.pit i{position:absolute;width:31.5%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 3px 3px rgba(0,0,0,.6),inset -2px -3px 4px rgba(0,0,0,.35),inset 2px 2px 3px rgba(255,255,255,.55)}
+.store i{width:13.5%}
+.cnt{position:absolute;right:6%;bottom:2%;font:bold 13px/1 Georgia,serif;color:#ffe9b8;text-shadow:0 1px 2px #000;pointer-events:none}
+.store .cnt{right:4%;bottom:50%;transform:translateY(50%);font-size:20px}
+.lbl{display:flex;gap:10px;font-size:14px;opacity:.85;margin-top:30px}
+#bar{position:relative;z-index:2;display:flex;gap:10px;margin:4px 0 16px}
+button,select,input{font:inherit;color:#2a1508;background:linear-gradient(#ffd978,#d9a441);border:0;border-radius:10px;padding:9px 16px;box-shadow:0 3px 0 #8a5c14,0 5px 8px rgba(0,0,0,.5);cursor:pointer}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 #8a5c14}
+input{width:100px;text-align:center;text-transform:uppercase;background:#fff3d6;cursor:text}
+#menu,#rules{position:fixed;inset:0;background:rgba(20,10,4,.88);display:flex;align-items:center;justify-content:center;z-index:5;padding:16px}
+#menu .box,#rules .box{background:linear-gradient(#6e3d18,#4a2810);border:3px solid #c58b4b;border-radius:18px;padding:22px;max-width:360px;width:100%;text-align:center;display:grid;gap:12px;box-shadow:0 20px 50px #000}
+#menu h2,#rules h2{margin:0;color:#ffd978}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+#msg{font-size:14px;min-height:20px}
+#rules{z-index:6}#rules .box{text-align:left;max-height:88vh;overflow:auto;gap:8px;font-size:15px;line-height:1.4}#rules ul{margin:0;padding-left:20px}#rules button{justify-self:center;margin-top:6px}
+.num{display:flex;align-items:center;align-self:center;min-width:0}.num.R{flex-direction:row-reverse}.num b{flex:none;width:2em;height:2em;display:flex;align-items:center;justify-content:center;border:2px solid #ffe9b8;border-radius:50%;background:rgba(30,15,5,.65);color:#ffe9b8;font:bold 15px/1 Georgia,serif;box-shadow:0 2px 3px rgba(0,0,0,.5)}.num u{flex:1;height:2px;min-width:2px;background:#ffe9b8;opacity:.8}
+.tag{text-align:center;font-weight:bold;letter-spacing:.05em;font-size:clamp(11px,3.2vw,15px);padding:4px 2px;border-radius:10px;background:rgba(30,15,5,.55);color:#e9d3a6;box-shadow:inset 0 1px 3px #000;opacity:.75}.tag.act{opacity:1;color:#2a1508;background:linear-gradient(#ffd978,#d9a441);box-shadow:0 0 12px var(--gold)}
+#rc{font-size:38px;letter-spacing:.3em;color:#ffd978;text-shadow:0 2px 0 #6b4510;margin-bottom:8px}
+#toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;width:max-content;max-width:80vw;text-align:center;padding:18px 22px;border-radius:16px;font-size:19px;line-height:1.35;color:#2a1508;background:linear-gradient(#ffd978,#d9a441);border:3px solid #8a5c14;box-shadow:0 12px 40px rgba(0,0,0,.7);pointer-events:none}
+.hide{display:none!important}
+</style></head><body>
+<h1>MANCALA</h1>
+<div id="status"></div>
+<div id="stage"><div id="board"></div></div>
+
+<div id="bar"><button id="menuBtn">Menu</button><button id="helpBtn" aria-label="Rules">?</button><button id="sndBtn">Sound: on</button></div>
+<div id="toast" class="hide"></div>
+<div id="rules" class="hide"><div class="box">
+<h2>How to play Mancala</h2>
+<div><b>Goal:</b> collect more marbles in your store (the big pit at the bottom) than your opponent.</div>
+<ul>
+<li><b>Your side:</b> the six pits down the left column. Your opponent has the right column, and their store is the big pit at the top.</li>
+<li><b>Your move:</b> tap one of your glowing pits. All its marbles are picked up and dropped one by one in each pit going anticlockwise (down your column, into your store at the bottom, then up your opponent’s column).</li>
+<li><b>Skipping:</b> you drop into your own store but skip your opponent’s store.</li>
+<li><b>Extra turn:</b> if your last marble lands in your own store, you go again.</li>
+<li><b>Capture:</b> if your last marble lands in an empty pit on your side, and the pit opposite has marbles, you capture both piles into your store.</li>
+<li><b>Game end:</b> when one side has no marbles left, the other player keeps all the marbles remaining on their side. Most marbles in the store wins.</li>
+</ul>
+<div><b>Tips:</b> plan moves that finish exactly in your store for extra turns, and watch for captures on both sides.</div>
+<div><b>Modes:</b> play the computer (Easy, Medium, Hard), or online with a friend using a shared 4-letter room code.</div>
+<button id="closeHelp">Got it</button>
+</div></div>
+<div id="menu"><div class="box">
+<h2>Choose a game</h2>
+<div>Play the computer</div>
+<div class="row"><button data-l="1">Easy</button><button data-l="4">Medium</button><button data-l="7">Hard</button></div>
+<div>Play a friend online</div>
+<div class="row"><button id="host">Create room</button></div>
+<div class="row"><input id="code" maxlength="4" placeholder="CODE"><button id="join">Join</button></div>
+<div id="msg"></div>
+<div id="share" class="hide"><div id="rc">----</div><div class="row"><button id="shr">Share</button><button id="wa">WhatsApp</button><button id="sms">SMS</button><button id="cp">Copy link</button></div></div>
+</div></div>
+<script>
+// Paste your Firebase web config here (Realtime Database), e.g. {apiKey:"...",databaseURL:"...",projectId:"..."}
+const FIREBASE_CONFIG={apiKey:"AIzaSyB60GCFW503o3jj00YPi1-RWj4h8hAPF28",authDomain:"mancala-eb8e4.firebaseapp.com",databaseURL:"https://mancala-eb8e4-default-rtdb.firebaseio.com",projectId:"mancala-eb8e4",storageBucket:"mancala-eb8e4.firebasestorage.app",messagingSenderId:"908650551915",appId:"1:908650551915:web:7f9252edda3663363eef2e"};
+const COL=["#e63946","#f4a300","#2ec4b6","#3a86ff","#8338ec","#ff5d8f","#7bd957","#f8f4e3"];
+const $=id=>document.getElementById(id),wait=ms=>new Promise(r=>setTimeout(r,ms));
+let S,mode="cpu",me=0,lvl=4,busy=false,room=null,db=null,started=false,sound=true,AC,P=[],N=[],cache=[];
+function chink(){if(!sound)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime,f=1700+Math.random()*1500;[1,2.76].forEach((m,j)=>{const o=AC.createOscillator(),g=AC.createGain();o.type="sine";o.frequency.value=f*m;g.gain.setValueAtTime(.2/(j+1),t);g.gain.exponentialRampToValueAtTime(.001,t+.13);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.14)})}catch(e){}}
+function sim(b0,t,i,sn){const b=b0.slice(),sp=[];let n=b[i];b[i]=0;let p=i;const sk=t?6:13,st=t?13:6;
+while(n){p=(p+1)%14;if(p==sk)continue;b[p]++;n--;if(sn)sp.push(b.slice())}
+const mine=t?(p>6&&p<13):p<6;
+if(p!=st&&mine&&b[p]==1&&b[12-p]){b[st]+=b[p]+b[12-p];b[p]=b[12-p]=0;if(sn)sp.push(b.slice())}
+let end=false;const a=b.slice(0,6).reduce((x,y)=>x+y),c=b.slice(7,13).reduce((x,y)=>x+y);
+if(!a||!c){end=true;b[6]+=a;b[13]+=c;for(let k=0;k<6;k++)b[k]=b[k+7]=0}
+return{b,sp,next:p==st?t:1-t,end}}
+function mm(b,t,d,a,c){const lo=t?7:0;let best=t?-1e9:1e9;
+for(let i=lo;i<lo+6;i++){if(!b[i])continue;const r=sim(b,t,i);const v=(r.end||d==1)?r.b[13]-r.b[6]:mm(r.b,r.next,d-1,a,c);
+if(t){best=Math.max(best,v);a=Math.max(a,v)}else{best=Math.min(best,v);c=Math.min(c,v)}if(c<=a)break}return best}
+function aiPick(){let bi=-1,bv=-1e9;for(let i=7;i<13;i++){if(!S.b[i])continue;const r=sim(S.b,1,i);
+const v=((r.end||lvl==1)?r.b[13]-r.b[6]:mm(r.b,r.next,lvl-1,-1e9,1e9))+Math.random()*(lvl==1?7:.01);if(v>bv){bv=v;bi=i}}return bi}
+function build(){const B=$("board");B.innerHTML='<div class="tag" id="t0" style="grid-row:1;grid-column:1/3">YOU</div><div class="tag" id="t1" style="grid-row:1;grid-column:3/5">COMPUTER</div>';P=[];N=[];for(let i=0;i<14;i++){const d=document.createElement("div");d.className="pit"+(i==6||i==13?" store":"");d.dataset.i=i;
+d.onclick=()=>click(i);B.appendChild(d);P[i]=d;const n=document.createElement("div");n.className="num";n.innerHTML="<b></b><u></u>";B.appendChild(n);N[i]=n}}
+function layout(){for(let i=0;i<14;i++){const q=(i+14-me*7)%14,s=P[i].style;
+let nc,r;if(q<6){s.gridColumn=2;r=q+3;nc=1;s.justifySelf="start"}else if(q==6){s.gridColumn="2/4";r=9;nc=1;s.justifySelf="stretch"}else if(q<13){s.gridColumn=3;r=15-q;nc=4;s.justifySelf="end"}else{s.gridColumn="2/4";r=2;nc=4;s.justifySelf="stretch"}s.gridRow=r;const n=N[i];n.style.gridColumn=nc;n.style.gridRow=r;n.className="num "+(nc==1?"L":"R")}}
+function pos(i,k,store){if(store){{const a=k*2.4,r=Math.min(6*Math.sqrt(k),17);return[50+2.4*r*Math.cos(a),50+.6*r*Math.sin(a)]}}
+const a=k*2.4+i,r=Math.min(7*Math.sqrt(k+.6),27);return[50+r*Math.cos(a),52+.75*r*Math.sin(a)]}
+function render(b){for(let i=0;i<14;i++){if(cache[i]===b[i])continue;cache[i]=b[i];const st=i==6||i==13;let h="";
+for(let k=0;k<b[i];k++){const[x,y]=pos(i,k,st);h+=`<i style="left:${x}%;top:${y}%;background:radial-gradient(circle at 35% 30%,#fff9,${COL[(k+i)%8]} 55%)"></i>`}
+P[i].innerHTML=h;N[i].firstChild.textContent=b[i]}
+mark()}
+function mark(){const lo=me*7;for(let i=0;i<14;i++){const ok=S&&!S.over&&!busy&&S.t==me&&(mode=="cpu"||true)&&i>=lo&&i<lo+6&&S.b[i]>0;P[i].classList.toggle("on",!!ok)}}
+function toast(t,ms){const e=$("toast");e.textContent=t;e.classList.remove("hide");return wait(ms).then(()=>e.classList.add("hide"))}
+function status(t){$("status").textContent=t}
+function setTurn(){if(S.over)return;const my=S.t==me;$("t0").classList.toggle("act",my);$("t1").classList.toggle("act",!my);status(mode=="cpu"?(my?"Your turn":"Computer is thinking…"):(my?"Your turn":"Friend’s turn"));mark()}
+async function play(i){busy=true;mark();const t=S.t,r=sim(S.b,t,i,true);const first=S.b.slice();first[i]=0;render(first);await wait(450);
+for(const s of r.sp){render(s);chink();await wait(400)}
+if(r.end){const pre=r.sp[r.sp.length-1],a=pre.slice(0,6).reduce((x,y)=>x+y),c=pre.slice(7,13).reduce((x,y)=>x+y),n=a+c;if(n>0){const who=(a>0?0:1)==me?"you":(mode=="cpu"?"the Computer":"your friend");const m="One side is empty – the remaining "+n+" counter"+(n==1?"":"s")+" go to "+who+"!";status(m);await toast(m,3000)}}
+S.b=r.b;render(S.b);S.n++;S.t=r.next;
+if(r.end){S.over=true;const m=S.b[6],o=S.b[13],mine=m>o?"You win! ":m<o?(mode=="cpu"?"Computer wins. ":"Your friend wins. "):"It is a draw. ";status(mine+m+" – "+o+" (tap Menu for a new game)");chink();setTimeout(chink,160);setTimeout(chink,320)}
+busy=false;if(!S.over){setTurn();if(mode=="cpu"&&S.t==1){await wait(1000);play(aiPick())}}else mark()}
+function click(i){if(!S||S.over||busy||S.t!=me||i<me*7||i>=me*7+6||!S.b[i])return;
+if(mode=="online"&&room)room.child("last").set({i,by:me,n:S.n+1});play(i)}
+function start(m){mode=m;started=true;S={b:[4,4,4,4,4,4,0,4,4,4,4,4,4,0],t:0,n:0,over:false};cache=[];layout();$("t0").textContent="YOU";$("t1").textContent=m=="cpu"?"COMPUTER":"FRIEND";
+$("menu").classList.add("hide");render(S.b);setTurn()}
+function msg(t){$("msg").textContent=t}
+function fb(){if(!FIREBASE_CONFIG||!window.firebase){msg("Online play needs your Firebase config added in the code (and the page hosted on your own site).");return false}if(!db){firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database()}return true}
+function listen(){room.child("last").on("value",async s=>{const v=s.val();if(!S||!v||v.by===me||v.n<=S.n)return;while(busy)await wait(100);play(v.i)})}
+let shareCode="";
+function link(c){return location.href.split("#")[0].split("?")[0]+"?room="+c}
+function txt(){return "Play Mancala with me! Room code: "+shareCode+" – tap to join: "+link(shareCode)}
+function showShare(c){shareCode=c;$("rc").textContent=c;$("share").classList.remove("hide");msg("Send the code or link to your friend. Waiting for them to join…")}
+async function copy(){try{await navigator.clipboard.writeText(txt());msg("Link copied!")}catch(e){prompt("Copy this:",txt())}}
+$("shr").onclick=async()=>{try{if(navigator.share){await navigator.share({title:"Mancala",text:"Play Mancala with me! Room code: "+shareCode,url:link(shareCode)});return}}catch(e){return}copy()};
+$("wa").onclick=()=>window.open("https://wa.me/?text="+encodeURIComponent(txt()),"_blank");
+$("sms").onclick=()=>{location.href="sms:?&body="+encodeURIComponent(txt())};
+$("cp").onclick=copy;
+$("host").onclick=()=>{if(!fb())return;const code=Math.random().toString(36).slice(2,6).toUpperCase();room=db.ref("mancala/"+code);room.set({guest:false,last:null});me=0;started=false;
+showShare(code);room.child("guest").on("value",s=>{if(s.val()&&!started)start("online")});listen()};
+$("join").onclick=()=>{if(!fb())return;const c=$("code").value.trim().toUpperCase();if(c.length<4){msg("Enter the 4-letter code");return}const rr=db.ref("mancala/"+c);msg("Joining…");rr.once("value").then(s=>{if(!s.exists()){msg("Room not found – check the code");return}room=rr;me=1;room.child("guest").set(true);start("online");listen()}).catch(()=>msg("Could not connect"))};
+document.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{if(room){room.off();room=null}$("share").classList.add("hide");msg("");lvl=+b.dataset.l;me=0;start("cpu")});
+$("menuBtn").onclick=()=>$("menu").classList.remove("hide");
+$("helpBtn").onclick=()=>$("rules").classList.remove("hide");
+$("closeHelp").onclick=()=>$("rules").classList.add("hide");
+$("rules").onclick=e=>{if(e.target.id=="rules")$("rules").classList.add("hide")};
+$("sndBtn").onclick=e=>{sound=!sound;e.target.textContent="Sound: "+(sound?"on":"off")};
+build();S=null;layout();
+const rp=new URLSearchParams(location.search).get("room");if(rp){$("code").value=rp.toUpperCase().slice(0,4);msg("Joining room "+rp.toUpperCase()+"…");setTimeout(()=>$("join").click(),400)}
+</script></body></html>
