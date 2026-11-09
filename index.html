@@ -76,7 +76,7 @@ input{width:100px;text-align:center;text-transform:uppercase;background:#fff3d6;
 </div></div>
 <script>
 // Paste your Firebase web config here (Realtime Database), e.g. {apiKey:"...",databaseURL:"...",projectId:"..."}
-const FIREBASE_CONFIG={apiKey:"AIzaSyB60GCFW503o3jj00YPi1-RWj4h8hAPF28",authDomain:"mancala-eb8e4.firebaseapp.com",databaseURL:"https://mancala-eb8e4-default-rtdb.firebaseio.com",projectId:"mancala-eb8e4",storageBucket:"mancala-eb8e4.firebasestorage.app",messagingSenderId:"908650551915",appId:"1:908650551915:web:7f9252edda3663363eef2e"};
+const FIREBASE_CONFIG={apiKey:"AIzaSyB60GCFW503o3jj00YPi1-RWj4h8hAPF28",authDomain:"mancala-eb8e4.firebaseapp.com",databaseURL:"https://mancala-eb8e4-default-rtdb.europe-west1.firebasedatabase.app/",projectId:"mancala-eb8e4",storageBucket:"mancala-eb8e4.firebasestorage.app",messagingSenderId:"908650551915",appId:"1:908650551915:web:7f9252edda3663363eef2e"};
 const COL=["#e63946","#f4a300","#2ec4b6","#3a86ff","#8338ec","#ff5d8f","#7bd957","#f8f4e3"];
 const $=id=>document.getElementById(id),wait=ms=>new Promise(r=>setTimeout(r,ms));
 let S,mode="cpu",me=0,lvl=4,busy=false,room=null,db=null,started=false,sound=true,AC,P=[],N=[],cache=[];
